@@ -615,12 +615,16 @@ public class Diagnostico {
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < sintomas.size(); i++) {
                 builder.append("?,");
-            }
+            }//Con este bucle se ponen tantas interrogaciones (?) como sintomas se vayan a buscar
             builder.deleteCharAt(builder.length() - 1);
-            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_ID + " FROM "
-                    + TABLE_DISEASE_SYMPTON + " WHERE " + SYMPTON_CUI + " IN (" + builder.toString() + ") GROUP BY " + DISEASE_ID
-                    + " HAVING COUNT(?)");
 
+
+            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_NAME + " FROM " + TABLE_DISEASE
+                    + " JOIN " + TABLE_DISEASE_SYMPTON + " ON " + TABLE_DISEASE+"." + DISEASE_ID +"=" + TABLE_DISEASE_SYMPTON+ "."+DISEASE_ID
+                    + " WHERE " + SYMPTON_CUI+ " IN (" + builder.toString() + ") GROUP BY " + DISEASE_NAME
+                    + " HAVING COUNT(?)" );
+            //Juntar las tablas de sympton y disease para tener el nombre y agruparlas por nombre
+            //Solo mostrar los conjuntos los cuales tengan el numero de sintomas introducidos
             int index = 1;
             for (String sintoma : sintomas) {
                 preparedStatement.setString(index++, sintoma);
