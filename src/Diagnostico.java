@@ -139,7 +139,46 @@ public class Diagnostico {
     }
 
     private void realizarDiagnostico() {
-        // implementar
+        if (checkIfIsConnected()) {
+            conectar();
+        }
+        System.out.println("Imprimiendo por pantalla los sintomas");
+        List<Sintoma> sintomas = getSintomas();
+        if (sintomas == null) {
+            System.out.println("Hubo un error al obtener los sintomas");
+            return;
+        }
+        System.out.println("\tCodigo  | Sintoma");
+        for (Sintoma sintoma : sintomas) {
+            System.out.println("\t" + sintoma.getCodigoSintoma() + "  " + sintoma.getSintoma());
+        }
+
+        System.out.println("Por favor introduzca el código de los sintomas");
+        System.out.println("Cuando haya finalizado pulse intro");
+        List<String> busqueda = new LinkedList<>();
+        String valor;
+        do {
+            try {
+                valor = readString();
+            } catch (Exception e) {
+                System.err.println("Error al leer por teclado");
+                valor = "";
+                continue;
+            }
+            if (!valor.isEmpty()) {
+                busqueda.add(valor);
+            }
+        } while (!valor.isEmpty());
+
+        List<Enfermedad> enfermedades = buscarEnfermedadConSintomas(busqueda);
+        if (enfermedades == null || enfermedades.size() == 0) {
+            System.out.println("No se pudieron encontrar enfermedades que cumplieran todos los sintomas proporcionados");
+            return;
+        }
+        for (Enfermedad enfermedad : enfermedades) {
+            System.out.println("\t" + enfermedad.getNombre());
+        }
+
     }
 
     private void listarSintomasEnfermedad() {
@@ -195,7 +234,7 @@ public class Diagnostico {
      * @throws Exception Puede lanzar excepción.
      */
     private LinkedList<String> readData() throws Exception {
-        LinkedList<String> data = new LinkedList<String>();
+        LinkedList<String> data = new LinkedList<>();
         BufferedReader bL = new BufferedReader(new FileReader(DATAFILE));
         while (bL.ready()) {
             data.add(bL.readLine());
@@ -211,7 +250,7 @@ public class Diagnostico {
      * @return Devuelve cierto en caso de que la base de datos exista
      */
     private boolean checkIfDatabaseExists(String databaseName) {
-        if (!checkIfIsConnected()) {
+        if (checkIfIsConnected()) {
             conectar();     //Si no existe la conexión crearla
         }
         try {
@@ -235,10 +274,10 @@ public class Diagnostico {
      */
     private boolean checkIfIsConnected() {
         try {
-            return mConnection != null && !mConnection.isClosed();
+            return mConnection == null || mConnection.isClosed();
         } catch (SQLException e) {
             System.err.println("Error al comprobar el estado de la conexion");
-            return false;
+            return true;
         }
     }
 
@@ -314,7 +353,7 @@ public class Diagnostico {
 
 
             statement.executeUpdate("CREATE TABLE " + TABLE_SEMANTIC_TYPE + " (" + SEMANTYC_TYPE_ID + " INT AUTO_INCREMENT, " + SEMANTYC_TYPE_CUI
-                    + " VARCHAR(45), PRIMARY KEY (" + SEMANTYC_TYPE_ID + "));");
+                    + " VARCHAR(45) UNIQUE , PRIMARY KEY (" + SEMANTYC_TYPE_ID + "));");
 
 
             statement.executeUpdate("CREATE TABLE " + TABLE_SOURCE + " (" + SOURCE_ID + " INT AUTO_INCREMENT, " + SOURCE_NAME +
@@ -394,46 +433,46 @@ public class Diagnostico {
     private void insertarEnfermedadEnLaBD(LinkedList<Enfermedad> enfermedades) {
         try {
             mConnection.setAutoCommit(false);
-            Statement statement = mConnection.createStatement();
-            PreparedStatement preparedStatementDisease = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE + " (" + DISEASE_NAME
-                    + ") VALUES (?)");
 
-            PreparedStatement preparedStatementDiseaseHasSympton = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE_SYMPTON
-                    + "(" + SYMPTON_CUI + "," + DISEASE_ID + ") VALUES (?,?)");
-            PreparedStatement preparedStatementDiseaseHasCode = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE_HAS_CODE + "("
-                    + DISEASE_ID + "," + CODE_ID + "," + SOURCE_ID + ") VALUES (?,?,?)");
             for (Enfermedad enfermedad : enfermedades) {
+                PreparedStatement preparedStatementDisease = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE + " (" + DISEASE_NAME
+                        + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
 
-
-                preparedStatementDisease.setString(1, enfermedad.nombre);
+                preparedStatementDisease.setString(1, enfermedad.getNombre());
                 preparedStatementDisease.executeUpdate();
-
-                ResultSet resultSet = statement.executeQuery("SELECT " + DISEASE_ID + " FROM " + TABLE_DISEASE
-                        + " ORDER BY " + DISEASE_ID + " DESC LIMIT 1;"); //Hacer query para obtener la clave primaria
+                ResultSet resultSet = preparedStatementDisease.getGeneratedKeys();
+                preparedStatementDisease.close();
                 resultSet.first();
                 int primaryKey = resultSet.getInt(1);
+                resultSet.close();
 
                 for (Sintoma sintoma : enfermedad.getSintomas()) {
                     insertarSintomaYTipoSemantico(sintoma);
+                    PreparedStatement preparedStatementDiseaseHasSympton = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE_SYMPTON
+                            + "(" + SYMPTON_CUI + "," + DISEASE_ID + ") VALUES (?,?)");
+
                     preparedStatementDiseaseHasSympton.setString(1, sintoma.getCodigoSintoma());
                     preparedStatementDiseaseHasSympton.setInt(2, primaryKey);
 
                     preparedStatementDiseaseHasSympton.executeUpdate();
+                    preparedStatementDiseaseHasSympton.close();
                 }
-
                 for (Codigo codigo : enfermedad.getCodigos()) {
                     int id = insertarCodigo(codigo);
+                    PreparedStatement preparedStatementDiseaseHasCode = mConnection.prepareStatement("INSERT INTO " + TABLE_DISEASE_HAS_CODE + "("
+                            + DISEASE_ID + "," + CODE_ID + "," + SOURCE_ID + ") VALUES (?,?,?)");
                     preparedStatementDiseaseHasCode.setInt(1, primaryKey);
                     preparedStatementDiseaseHasCode.setString(2, codigo.getCodigo());
                     preparedStatementDiseaseHasCode.setInt(3, id);
                     preparedStatementDiseaseHasCode.executeUpdate();
+                    preparedStatementDiseaseHasCode.close();
                 }
 
             }
             mConnection.commit();
-            mConnection.setAutoCommit(true);
         } catch (SQLException e) {
             System.err.println("Error al insertar los datos en la Base de datos");
+            e.printStackTrace();
             try {
                 mConnection.rollback();
             } catch (SQLException e1) {
@@ -457,14 +496,7 @@ public class Diagnostico {
 
         //Inserción del sintoma
 
-
-        PreparedStatement preparedQuery = mConnection.prepareStatement("SELECT  " + SYMPTON_CUI + " FROM "
-                + TABLE_SYMPTON + " WHERE " + SYMPTON_CUI + " =? ");
-
-        preparedQuery.setString(1, sintoma.getCodigoSintoma());
-        ResultSet resultSet = preparedQuery.executeQuery();
-        resultSet.last();
-        if (resultSet.getRow() == 0) {//Comprobar si ya existe en la base de datos el CUI para no insertarlo de nuevo
+        try {
             PreparedStatement preparedStatementSympton = mConnection.prepareStatement("INSERT INTO " + TABLE_SYMPTON + "("
                     + SYMPTON_CUI + "," + SYMPTON_NAME + ") VALUES (?,?)");
 
@@ -472,23 +504,46 @@ public class Diagnostico {
             preparedStatementSympton.setString(2, sintoma.getSintoma());
 
             preparedStatementSympton.executeUpdate();
+            preparedStatementSympton.close();
+            //Si lanza excepcion de SQL es que el sintoma ya esta presente en la BD
+        } catch (SQLException e) {
+            //No hacer nada ya que el sintoma ya esta en la BD
         }
 
         //Insercion del semantic type
-        PreparedStatement preparedStatementSemantycType = mConnection.prepareStatement("INSERT INTO " + TABLE_SEMANTIC_TYPE
-                + "(" + SEMANTYC_TYPE_CUI + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-        preparedStatementSemantycType.setString(1, sintoma.tipoSemantico);
-        preparedStatementSemantycType.executeUpdate();
-        ResultSet generatedKeys = preparedStatementSemantycType.getGeneratedKeys();
-        generatedKeys.next();
-        int foreignKey = generatedKeys.getInt(1);//Obtener la primary key generada
+        int foreignKey;
+        try {
+            PreparedStatement preparedStatementSemantycType = mConnection.prepareStatement("INSERT INTO " + TABLE_SEMANTIC_TYPE
+                    + "(" + SEMANTYC_TYPE_CUI + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            preparedStatementSemantycType.setString(1, sintoma.tipoSemantico);
+            preparedStatementSemantycType.executeUpdate();
+            ResultSet generatedKeys = preparedStatementSemantycType.getGeneratedKeys();
+            preparedStatementSemantycType.close();
+            generatedKeys.next();
+            foreignKey = generatedKeys.getInt(1);//Obtener la primary key generada
+            generatedKeys.close();
+        } catch (SQLException e) {//Si ya está en la BD buscar la clave
+            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + SEMANTYC_TYPE_ID + " FROM "
+                    + TABLE_SEMANTIC_TYPE + " WHERE " + SEMANTYC_TYPE_CUI + "=?");
+            preparedStatement.setString(1, sintoma.getTipoSemantico());
+            ResultSet clave = preparedStatement.executeQuery();
+            preparedStatement.close();
+            clave.first();
+            foreignKey = clave.getInt(1);
+            clave.close();
+        }
 
-        PreparedStatement preparedStatementSymptonSemanticType = mConnection.prepareStatement("INSERT INTO " + TABLE_SYMPTON_SEMANTIC_TYPE
-                + "(" + SYMPTON_CUI + "," + SEMANTYC_TYPE_ID + ") VALUES (?,?)");
-        preparedStatementSymptonSemanticType.setString(1, sintoma.getCodigoSintoma());
-        preparedStatementSymptonSemanticType.setInt(2, foreignKey);
+        try {
+            PreparedStatement preparedStatementSymptonSemanticType = mConnection.prepareStatement("INSERT INTO " + TABLE_SYMPTON_SEMANTIC_TYPE
+                    + "(" + SYMPTON_CUI + "," + SEMANTYC_TYPE_ID + ") VALUES (?,?)");
+            preparedStatementSymptonSemanticType.setString(1, sintoma.getCodigoSintoma());
+            preparedStatementSymptonSemanticType.setInt(2, foreignKey);
 
-        preparedStatementSymptonSemanticType.executeUpdate();
+            preparedStatementSymptonSemanticType.executeUpdate();
+            preparedStatementSymptonSemanticType.close();
+        } catch (SQLException e) {
+            //Si ya esta en la BD no hacer nada
+        }
 
 
     }
@@ -499,35 +554,91 @@ public class Diagnostico {
      * @param codigo Codigo que hay que insertar
      * @return Id del source
      */
-    private int insertarCodigo(Codigo codigo) {
-        try {
-            PreparedStatement preparedStatementCode = mConnection.prepareStatement("INSERT INTO " + TABLE_CODE + "("
-                    + CODE_ID + "," + SOURCE_ID + ") VALUES (?,?)");
+    private int insertarCodigo(Codigo codigo) throws SQLException {
 
+        PreparedStatement preparedStatementCode = mConnection.prepareStatement("INSERT INTO " + TABLE_CODE + "("
+                + CODE_ID + "," + SOURCE_ID + ") VALUES (?,?)");
+
+
+        int id;
+        try {
+            PreparedStatement preparedStatementSource = mConnection.prepareStatement("INSERT INTO " + TABLE_SOURCE + "("
+                    + SOURCE_NAME + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            preparedStatementSource.setString(1, codigo.getVocabulario());
+            preparedStatementSource.executeUpdate();
+
+            ResultSet keys = preparedStatementSource.getGeneratedKeys();
+            keys.first();
+            id = keys.getInt(1); //Obtener la clave generada
+        } catch (SQLException e) { //Si ha llegado a catch es que ya existia el valor en la BD y debe buscar su clave en ella
             PreparedStatement queryStatement = mConnection.prepareStatement("SELECT  " + SOURCE_ID + " FROM " + TABLE_SOURCE
                     + " WHERE " + SOURCE_NAME + "=?");
             queryStatement.setString(1, codigo.getVocabulario());
             ResultSet resultSet = queryStatement.executeQuery();
             resultSet.last();
-            if (resultSet.getRow() == 0) {
-                PreparedStatement preparedStatementSource = mConnection.prepareStatement("INSERT INTO " + TABLE_SOURCE + "("
-                        + SOURCE_NAME + ") VALUES (?)");
-                preparedStatementSource.setString(1, codigo.getVocabulario());
-                preparedStatementSource.executeUpdate();
-                resultSet = queryStatement.executeQuery();
+
+            id = resultSet.getInt(1);
+        }
+
+        preparedStatementCode.setString(1, codigo.getCodigo());
+        preparedStatementCode.setInt(2, id);
+        preparedStatementCode.executeUpdate();
+        preparedStatementCode.close();
+
+        return id;
+    }
+
+    /**
+     * Realiza una busqueda en la BD de todos los sintomas
+     *
+     * @return Una lista que contiene todos los sintomas de la BD
+     */
+    private List<Sintoma> getSintomas() {
+        List<Sintoma> sintomas = new LinkedList<>();
+
+        try {
+            Statement statement = mConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + TABLE_SYMPTON);
+            while (resultSet.next()) {
+                sintomas.add(new Sintoma(resultSet.getString(2), resultSet.getString(1), null));
             }
-            resultSet.first();
-            int id = resultSet.getInt(1);
-
-            preparedStatementCode.setString(1, codigo.getCodigo());
-            preparedStatementCode.setInt(2, id);
-            preparedStatementCode.executeUpdate();
-
-            return id;
-
+            resultSet.close();
+            return sintomas;
         } catch (SQLException e) {
-            System.err.println("Error al insertar codigo en la Base de datos");
-            return -1;
+            System.err.println("Error al obtener los sintomas de la base de datos");
+            return null;
+        }
+    }
+
+    private List<Enfermedad> buscarEnfermedadConSintomas(List<String> sintomas) {
+        try {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < sintomas.size(); i++) {
+                builder.append("?,");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_ID + " FROM "
+                    + TABLE_DISEASE_SYMPTON + " WHERE " + SYMPTON_CUI + " IN (" + builder.toString() + ") GROUP BY " + DISEASE_ID
+                    + " HAVING COUNT(?)");
+
+            int index = 1;
+            for (String sintoma : sintomas) {
+                preparedStatement.setString(index++, sintoma);
+            }
+            preparedStatement.setInt(index, sintomas.size());
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            List<Enfermedad> enfermedades = new LinkedList<>();
+            while (resultSet.next()) {
+                enfermedades.add(new Enfermedad(resultSet.getString(1), null, null));
+            }
+            resultSet.close();
+            preparedStatement.close();
+            return enfermedades;
+        } catch (SQLException e) {
+            System.err.println("Error buscando la enfermedad");
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -542,23 +653,23 @@ public class Diagnostico {
         private List<Codigo> codigos;
         private List<Sintoma> sintomas;
 
-        public Enfermedad(String nombre, List<Codigo> codigos, List<Sintoma> sintomas) {
+        Enfermedad(String nombre, List<Codigo> codigos, List<Sintoma> sintomas) {
             this.nombre = nombre;
             this.codigos = codigos;
             this.sintomas = sintomas;
         }
 
-        public String getNombre() {
+        String getNombre() {
             return nombre;
         }
 
 
-        public List<Codigo> getCodigos() {
+        List<Codigo> getCodigos() {
             return codigos;
         }
 
 
-        public List<Sintoma> getSintomas() {
+        List<Sintoma> getSintomas() {
             return sintomas;
         }
 
@@ -568,17 +679,17 @@ public class Diagnostico {
         private String codigo;
         private String vocabulario;
 
-        public Codigo(String codigo, String vocabulario) {
+        Codigo(String codigo, String vocabulario) {
             this.codigo = codigo;
             this.vocabulario = vocabulario;
         }
 
-        public String getCodigo() {
+        String getCodigo() {
             return codigo;
         }
 
 
-        public String getVocabulario() {
+        String getVocabulario() {
             return vocabulario;
         }
 
@@ -589,21 +700,21 @@ public class Diagnostico {
         private String codigoSintoma;
         private String tipoSemantico;
 
-        public Sintoma(String sintoma, String codigoSintoma, String tipoSemantico) {
+        Sintoma(String sintoma, String codigoSintoma, String tipoSemantico) {
             this.sintoma = sintoma;
             this.codigoSintoma = codigoSintoma;
             this.tipoSemantico = tipoSemantico;
         }
 
-        public String getSintoma() {
+        String getSintoma() {
             return sintoma;
         }
 
-        public String getCodigoSintoma() {
+        String getCodigoSintoma() {
             return codigoSintoma;
         }
 
-        public String getTipoSemantico() {
+        String getTipoSemantico() {
             return tipoSemantico;
         }
     }
