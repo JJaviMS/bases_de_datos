@@ -182,11 +182,61 @@ public class Diagnostico {
     }
 
     private void listarSintomasEnfermedad() {
-        // implementar
+        if (checkIfIsConnected()) {
+            conectar();
+        }
+        System.out.println("Imprimiendo enfermedades");
+        List<Enfermedad> enfermedades = getEnfermedadesDeLaBd();
+        if (enfermedades == null || enfermedades.size() == 0) {
+            System.err.println("Error obteniendo las enfermedades");
+            return;
+        }
+        System.out.println("\tCodigo  | Enfermedad");
+        for (Enfermedad enfermedad : enfermedades) {
+            System.out.println("\t" + enfermedad.getId() + "\t\t  " + enfermedad.getNombre());
+        }
+        System.out.println("Por favor introduce el ID de la enfermedad que desea consultar");
+        String id = null;
+        try {
+            id = readString();
+
+        } catch (Exception e) {
+            System.err.println("Error al imprimir al leer el ID");
+        }
+        List<Sintoma> sintomas = getSintomas(id);
+        if (sintomas == null || sintomas.size() == 0) {
+            System.out.println("No hay sintomas que mostrar");
+            return;
+        }
+        for (Sintoma sintoma : sintomas) {
+            System.out.println("\t" + sintoma.getSintoma());
+        }
+
     }
 
     private void listarEnfermedadesYCodigosAsociados() {
-        // implementar
+        if (checkIfIsConnected()) {
+            conectar();
+        }
+        System.out.println("Imprimiendo enfermedades");
+        List<Enfermedad> enfermedades = getEnfermedadesDeLaBd();
+        if (enfermedades == null || enfermedades.size() == 0) {
+            System.err.println("Error obteniendo las enfermedades");
+            return;
+        }
+        for (Enfermedad enfermedad : enfermedades) {
+            enfermedad.setCodigos(getCodigos(enfermedad.getId()));
+        }
+        for (Enfermedad enfermedad :  enfermedades){
+            System.out.println("Enfermedad: " + enfermedad.getId() + " - " + enfermedad.getNombre());
+            System.out.println("\n");
+            System.out.println("Codigos:");
+            System.out.println("\tCodigo  \t| Source");
+            for (Codigo codigo : enfermedad.getCodigos()){
+                System.out.println("\t"+codigo.getCodigo() + " \t\t " + codigo.getVocabulario());
+            }
+            System.out.println("\n");
+        }
     }
 
     private void listarSintomasYTiposSemanticos() {
@@ -270,7 +320,7 @@ public class Diagnostico {
     /**
      * Comprueba si la conexión existe y si esta abierta
      *
-     * @return Devuelve cierto en caso de que la conexión este correctamente establecida, falso en cualquier otro caso
+     * @return Devuelve falso en caso de que la conexión este correctamente establecida, cierto en cualquier otro caso
      */
     private boolean checkIfIsConnected() {
         try {
@@ -430,6 +480,11 @@ public class Diagnostico {
         return enfermedades;
     }
 
+    /**
+     * Dada una lista de enfermedades realiza la insercion de dicha enfermedad en la BD junto con sus codigos y sintomas
+     *
+     * @param enfermedades Las enfermedades que se quieren introducir en la BD
+     */
     private void insertarEnfermedadEnLaBD(LinkedList<Enfermedad> enfermedades) {
         try {
             mConnection.setAutoCommit(false);
@@ -610,6 +665,12 @@ public class Diagnostico {
         }
     }
 
+    /**
+     * Dada una lista de sintomas devuelve una lista de enfermedades las cuales contengan todos los sintomas
+     *
+     * @param sintomas Sintomas de los cuales se quieran buscar las enfermedades
+     * @return Lista con las enfermedades que contengan los sintomas
+     */
     private List<Enfermedad> buscarEnfermedadConSintomas(List<String> sintomas) {
         try {
             StringBuilder builder = new StringBuilder();
@@ -620,9 +681,9 @@ public class Diagnostico {
 
 
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_NAME + " FROM " + TABLE_DISEASE
-                    + " JOIN " + TABLE_DISEASE_SYMPTON + " ON " + TABLE_DISEASE+"." + DISEASE_ID +"=" + TABLE_DISEASE_SYMPTON+ "."+DISEASE_ID
-                    + " WHERE " + SYMPTON_CUI+ " IN (" + builder.toString() + ") GROUP BY " + DISEASE_NAME
-                    + " HAVING COUNT(?)" );
+                    + " JOIN " + TABLE_DISEASE_SYMPTON + " ON " + TABLE_DISEASE + "." + DISEASE_ID + "=" + TABLE_DISEASE_SYMPTON + "." + DISEASE_ID
+                    + " WHERE " + SYMPTON_CUI + " IN (" + builder.toString() + ") GROUP BY " + DISEASE_NAME
+                    + " HAVING COUNT(?)");
             //Juntar las tablas de sympton y disease para tener el nombre y agruparlas por nombre
             //Solo mostrar los conjuntos los cuales tengan el numero de sintomas introducidos
             int index = 1;
@@ -646,6 +707,82 @@ public class Diagnostico {
         }
     }
 
+    /**
+     * Devuelve los codigos asignados a la clave de una enfermedad
+     * @param id La clave de la enfermedad que se desea obtener sus codigos
+     * @return Lista de objetos de la clase Codigo los cuales se corresponden con la enfermedad
+     */
+    private List<Codigo> getCodigos(int id) {
+        try {
+            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + TABLE_DISEASE_HAS_CODE + "." + CODE_ID
+                    + "," + TABLE_SOURCE + "." + SOURCE_NAME + " FROM " + TABLE_DISEASE_HAS_CODE
+                    + " JOIN " + TABLE_SOURCE + " ON " + TABLE_SOURCE + "." + SOURCE_ID + "=" + TABLE_DISEASE_HAS_CODE + "."
+                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?");
+            preparedStatement.setInt(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            List<Codigo> codigos = new LinkedList<>();
+            while (resultSet.next()) {
+                codigos.add(new Codigo(resultSet.getString(1),resultSet.getString(2)));
+            }
+            resultSet.close();
+            preparedStatement.close();
+            return codigos;
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo los codigos");
+            return null;
+        }
+    }
+
+    /**
+     * Realiza la extraccion de todas las enfermedades de la BD
+     *
+     * @return Lista con todas las enfermedades de la BD
+     */
+    private List<Enfermedad> getEnfermedadesDeLaBd() {
+        try {
+            Statement statement = mConnection.createStatement();
+            List<Enfermedad> enfermedades = new LinkedList<>();
+
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + TABLE_DISEASE + " ORDER BY " + DISEASE_ID + " ASC");
+            while (resultSet.next()) {
+                enfermedades.add(new Enfermedad(resultSet.getString(2), resultSet.getInt(1)));
+            }
+            resultSet.close();
+            statement.close();
+            return enfermedades;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener las enfermedades");
+            return null;
+        }
+    }
+
+    /**
+     * Dada la id de una enfermedad devuelve todos los sintomas asociados a ella
+     *
+     * @param id Clave primaria de la enfermedad
+     * @return Lista con los sintomas asociados a la enfermedad
+     */
+    private List<Sintoma> getSintomas(String id) {
+        List<Sintoma> sintomas = new LinkedList<>();
+        try {
+            PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + SYMPTON_NAME + " FROM "
+                    + TABLE_DISEASE_SYMPTON + " JOIN " + TABLE_SYMPTON + " ON " + TABLE_DISEASE_SYMPTON + "." + SYMPTON_CUI
+                    + "=" + TABLE_SYMPTON + "." + SYMPTON_CUI + " WHERE " + DISEASE_ID + "=?");
+
+            preparedStatement.setString(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                sintomas.add(new Sintoma(resultSet.getString(1), null, null));
+            }
+            resultSet.close();
+            preparedStatement.close();
+            return sintomas;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener los sintomas");
+            return null;
+        }
+    }
+
 
     public static void main(String args[]) {
         new Diagnostico().showMenu();
@@ -656,11 +793,17 @@ public class Diagnostico {
         private String nombre;
         private List<Codigo> codigos;
         private List<Sintoma> sintomas;
+        private Integer id;
 
         Enfermedad(String nombre, List<Codigo> codigos, List<Sintoma> sintomas) {
             this.nombre = nombre;
             this.codigos = codigos;
             this.sintomas = sintomas;
+        }
+
+        Enfermedad(String nombre, Integer id) {
+            this.nombre = nombre;
+            this.id = id;
         }
 
         String getNombre() {
@@ -677,6 +820,25 @@ public class Diagnostico {
             return sintomas;
         }
 
+        Integer getId() {
+            return id;
+        }
+
+        void setNombre(String nombre) {
+            this.nombre = nombre;
+        }
+
+        void setCodigos(List<Codigo> codigos) {
+            this.codigos = codigos;
+        }
+
+        void setSintomas(List<Sintoma> sintomas) {
+            this.sintomas = sintomas;
+        }
+
+        void setId(Integer id) {
+            this.id = id;
+        }
     }
 
     private class Codigo {
