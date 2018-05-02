@@ -227,20 +227,32 @@ public class Diagnostico {
         for (Enfermedad enfermedad : enfermedades) {
             enfermedad.setCodigos(getCodigos(enfermedad.getId()));
         }
-        for (Enfermedad enfermedad :  enfermedades){
+        for (Enfermedad enfermedad : enfermedades) {
             System.out.println("Enfermedad: " + enfermedad.getId() + " - " + enfermedad.getNombre());
             System.out.println("\n");
             System.out.println("Codigos:");
             System.out.println("\tCodigo  \t| Source");
-            for (Codigo codigo : enfermedad.getCodigos()){
-                System.out.println("\t"+codigo.getCodigo() + " \t\t " + codigo.getVocabulario());
+            for (Codigo codigo : enfermedad.getCodigos()) {
+                System.out.println("\t" + codigo.getCodigo() + " \t\t " + codigo.getVocabulario());
             }
             System.out.println("\n");
         }
     }
 
     private void listarSintomasYTiposSemanticos() {
-        // implementar
+        if (checkIfIsConnected()){
+            conectar();
+        }
+        System.out.println("Imprimiendo sintomas");
+        System.out.println("\tCUI \t| Nombre \t | Tipo semantico");
+        List<Sintoma> sintomas = getSintomas();
+        if (sintomas==null ||sintomas.size()==0){
+            System.err.println("No se pudieron encontrar sinomas");
+            return;
+        }
+        for (Sintoma sintoma : sintomas){
+            System.out.println("\t" + sintoma.getCodigoSintoma() + " \t" + sintoma.getSintoma() + "\t" + sintoma.getTipoSemantico());
+        }
     }
 
     private void mostrarEstadisticasBD() {
@@ -653,9 +665,15 @@ public class Diagnostico {
 
         try {
             Statement statement = mConnection.createStatement();
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM " + TABLE_SYMPTON);
+            ResultSet resultSet = statement.executeQuery("SELECT " + TABLE_SYMPTON + "." + SYMPTON_CUI + ","
+                    + TABLE_SYMPTON + "." + SYMPTON_NAME + "," + TABLE_SEMANTIC_TYPE + "." + SEMANTYC_TYPE_CUI
+                    + " FROM " + TABLE_SYMPTON
+                    + " JOIN " + TABLE_SYMPTON_SEMANTIC_TYPE + " ON " + TABLE_SYMPTON_SEMANTIC_TYPE + "." + SYMPTON_CUI
+                    + "=" + TABLE_SYMPTON + "." + SYMPTON_CUI
+                    + " JOIN " + TABLE_SEMANTIC_TYPE +" ON "+TABLE_SEMANTIC_TYPE + "."+SEMANTYC_TYPE_ID
+                    + "=" + TABLE_SYMPTON_SEMANTIC_TYPE +"."+SEMANTYC_TYPE_ID);
             while (resultSet.next()) {
-                sintomas.add(new Sintoma(resultSet.getString(2), resultSet.getString(1), null));
+                sintomas.add(new Sintoma(resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)));
             }
             resultSet.close();
             return sintomas;
@@ -709,6 +727,7 @@ public class Diagnostico {
 
     /**
      * Devuelve los codigos asignados a la clave de una enfermedad
+     *
      * @param id La clave de la enfermedad que se desea obtener sus codigos
      * @return Lista de objetos de la clase Codigo los cuales se corresponden con la enfermedad
      */
@@ -717,12 +736,12 @@ public class Diagnostico {
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + TABLE_DISEASE_HAS_CODE + "." + CODE_ID
                     + "," + TABLE_SOURCE + "." + SOURCE_NAME + " FROM " + TABLE_DISEASE_HAS_CODE
                     + " JOIN " + TABLE_SOURCE + " ON " + TABLE_SOURCE + "." + SOURCE_ID + "=" + TABLE_DISEASE_HAS_CODE + "."
-                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?");
+                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?" + " ORDER BY " + TABLE_SYMPTON+"."+SYMPTON_CUI + " ASC");
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
             List<Codigo> codigos = new LinkedList<>();
             while (resultSet.next()) {
-                codigos.add(new Codigo(resultSet.getString(1),resultSet.getString(2)));
+                codigos.add(new Codigo(resultSet.getString(1), resultSet.getString(2)));
             }
             resultSet.close();
             preparedStatement.close();
