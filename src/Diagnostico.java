@@ -126,7 +126,7 @@ public class Diagnostico {
             System.err.println("No se pudo seleccionar la base de datos " + NOMBRE_BASE_DE_DATOS +
                     " por favor creela");
         }
-
+        if (mConnection!=null)
         System.out.println("Conexion realizada correctamente!");
     }
 
@@ -142,6 +142,7 @@ public class Diagnostico {
         if (checkIfIsConnected()) {
             conectar();
         }
+        if (mConnection==null) return;
         System.out.println("Imprimiendo por pantalla los sintomas");
         List<Sintoma> sintomas = getSintomas();
         if (sintomas == null) {
@@ -185,6 +186,7 @@ public class Diagnostico {
         if (checkIfIsConnected()) {
             conectar();
         }
+        if (mConnection==null) return;
         System.out.println("Imprimiendo enfermedades");
         List<Enfermedad> enfermedades = getEnfermedadesDeLaBd();
         if (enfermedades == null || enfermedades.size() == 0) {
@@ -218,6 +220,7 @@ public class Diagnostico {
         if (checkIfIsConnected()) {
             conectar();
         }
+        if (mConnection==null) return;
         System.out.println("Imprimiendo enfermedades");
         List<Enfermedad> enfermedades = getEnfermedadesDeLaBd();
         if (enfermedades == null || enfermedades.size() == 0) {
@@ -243,6 +246,7 @@ public class Diagnostico {
         if (checkIfIsConnected()) {
             conectar();
         }
+        if (mConnection==null) return;
         System.out.println("Imprimiendo sintomas");
         System.out.println("\tCUI \t| Nombre \t | Tipo semantico");
         List<Sintoma> sintomas = getSintomas();
@@ -259,16 +263,19 @@ public class Diagnostico {
         if (checkIfIsConnected()) {
             conectar();
         }
+        if (mConnection==null) return;
         int numeroEnfermedades = getFilasDeTabla(TABLE_DISEASE);
         if (numeroEnfermedades == -1) System.err.println("Error obteniendo numero de enfermedades");
         else {
             System.out.println("Numero de enfermedades: " + numeroEnfermedades);
         }
         int numeroSintomas = getFilasDeTabla(TABLE_SYMPTON);
+        System.out.print("\n");
         if (numeroSintomas == -1) System.err.println("Error al obtener el numero de sintomas");
         else {
             System.out.println("Numero de sintomas: " + numeroSintomas);
         }
+        System.out.print("\n");
         String min = getEnfermedadMinSintomas();
         String max = getEnfermedadMaxSintomas();
         System.out.println(min + "\n" + max);
@@ -276,6 +283,15 @@ public class Diagnostico {
         if (medio==-1)System.err.println("Error al obtener numero medio de sintomas por enfermedad");
         else{
             System.out.println("Numero medio de sintomas por enfermedad: " + medio);
+        }
+        System.out.print("\n");
+        List<String> sintomasDeSemantycType = getNumeroSintomasDeSemantycType();
+        System.out.println("Imprimiendo numero de sintomas de cada Semantyc type");
+        if (sintomasDeSemantycType==null) System.err.println("Error obteniendo el numero de sintomas de cada semantyc type");
+        else{
+            for(String string:sintomasDeSemantycType){
+                System.out.println(string);
+            }
         }
 
 
@@ -917,12 +933,23 @@ public class Diagnostico {
         }
     }
 
-    private String [] getNumeroSintomasDeSemantycType (){
+    /**
+     * Hace una query en la BD para ver cuantos sintomas tiene cada Semantyc type asignados
+     * @return Lista de Strings con la informacion de la query
+     */
+    private List<String> getNumeroSintomasDeSemantycType (){
         try {
             Statement statement = mConnection.createStatement();
-            ResultSet resultSet = statement.executeQuery("");
-            return null;
-            //TODO aaaa
+            ResultSet resultSet = statement.executeQuery("SELECT COUNT(*), " + TABLE_SEMANTIC_TYPE+"."+SEMANTYC_TYPE_CUI
+                    + " FROM " + TABLE_SYMPTON_SEMANTIC_TYPE + " JOIN " + TABLE_SEMANTIC_TYPE + " ON "
+                    + TABLE_SEMANTIC_TYPE+"."+SEMANTYC_TYPE_ID + "=" + TABLE_SYMPTON_SEMANTIC_TYPE+"."+SEMANTYC_TYPE_ID
+                    + " GROUP BY " + SEMANTYC_TYPE_CUI);
+            List<String> sol = new LinkedList<>();
+            while (resultSet.next()){
+                sol.add(resultSet.getString(2) + " tiene: " + resultSet.getInt(1) + " sintomas");
+            }
+            return sol;
+
         } catch (SQLException e) {
             System.err.println("Error al obtener el numero de sintomas de casa semantyc type");
             return null;
