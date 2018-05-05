@@ -240,23 +240,45 @@ public class Diagnostico {
     }
 
     private void listarSintomasYTiposSemanticos() {
-        if (checkIfIsConnected()){
+        if (checkIfIsConnected()) {
             conectar();
         }
         System.out.println("Imprimiendo sintomas");
         System.out.println("\tCUI \t| Nombre \t | Tipo semantico");
         List<Sintoma> sintomas = getSintomas();
-        if (sintomas==null ||sintomas.size()==0){
+        if (sintomas == null || sintomas.size() == 0) {
             System.err.println("No se pudieron encontrar sinomas");
             return;
         }
-        for (Sintoma sintoma : sintomas){
+        for (Sintoma sintoma : sintomas) {
             System.out.println("\t" + sintoma.getCodigoSintoma() + " \t" + sintoma.getSintoma() + "\t" + sintoma.getTipoSemantico());
         }
     }
 
     private void mostrarEstadisticasBD() {
-        // implementar
+        if (checkIfIsConnected()) {
+            conectar();
+        }
+        int numeroEnfermedades = getFilasDeTabla(TABLE_DISEASE);
+        if (numeroEnfermedades == -1) System.err.println("Error obteniendo numero de enfermedades");
+        else {
+            System.out.println("Numero de enfermedades: " + numeroEnfermedades);
+        }
+        int numeroSintomas = getFilasDeTabla(TABLE_SYMPTON);
+        if (numeroSintomas == -1) System.err.println("Error al obtener el numero de sintomas");
+        else {
+            System.out.println("Numero de sintomas: " + numeroSintomas);
+        }
+        String min = getEnfermedadMinSintomas();
+        String max = getEnfermedadMaxSintomas();
+        System.out.println(min + "\n" + max);
+        double medio = numeroMedioDeSintomas();
+        if (medio==-1)System.err.println("Error al obtener numero medio de sintomas por enfermedad");
+        else{
+            System.out.println("Numero medio de sintomas por enfermedad: " + medio);
+        }
+
+
     }
 
     /**
@@ -601,7 +623,8 @@ public class Diagnostico {
         }
 
         try {
-            PreparedStatement preparedStatementSymptonSemanticType = mConnection.prepareStatement("INSERT INTO " + TABLE_SYMPTON_SEMANTIC_TYPE
+            PreparedStatement preparedStatementSymptonSemanticType = mConnection.prepareStatement("INSERT INTO "
+                    + TABLE_SYMPTON_SEMANTIC_TYPE
                     + "(" + SYMPTON_CUI + "," + SEMANTYC_TYPE_ID + ") VALUES (?,?)");
             preparedStatementSymptonSemanticType.setString(1, sintoma.getCodigoSintoma());
             preparedStatementSymptonSemanticType.setInt(2, foreignKey);
@@ -670,8 +693,8 @@ public class Diagnostico {
                     + " FROM " + TABLE_SYMPTON
                     + " JOIN " + TABLE_SYMPTON_SEMANTIC_TYPE + " ON " + TABLE_SYMPTON_SEMANTIC_TYPE + "." + SYMPTON_CUI
                     + "=" + TABLE_SYMPTON + "." + SYMPTON_CUI
-                    + " JOIN " + TABLE_SEMANTIC_TYPE +" ON "+TABLE_SEMANTIC_TYPE + "."+SEMANTYC_TYPE_ID
-                    + "=" + TABLE_SYMPTON_SEMANTIC_TYPE +"."+SEMANTYC_TYPE_ID);
+                    + " JOIN " + TABLE_SEMANTIC_TYPE + " ON " + TABLE_SEMANTIC_TYPE + "." + SEMANTYC_TYPE_ID
+                    + "=" + TABLE_SYMPTON_SEMANTIC_TYPE + "." + SEMANTYC_TYPE_ID);
             while (resultSet.next()) {
                 sintomas.add(new Sintoma(resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)));
             }
@@ -736,7 +759,7 @@ public class Diagnostico {
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + TABLE_DISEASE_HAS_CODE + "." + CODE_ID
                     + "," + TABLE_SOURCE + "." + SOURCE_NAME + " FROM " + TABLE_DISEASE_HAS_CODE
                     + " JOIN " + TABLE_SOURCE + " ON " + TABLE_SOURCE + "." + SOURCE_ID + "=" + TABLE_DISEASE_HAS_CODE + "."
-                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?" + " ORDER BY " + TABLE_SYMPTON+"."+SYMPTON_CUI + " ASC");
+                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?" + " ORDER BY " + TABLE_SYMPTON + "." + SYMPTON_CUI + " ASC");
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
             List<Codigo> codigos = new LinkedList<>();
@@ -802,6 +825,109 @@ public class Diagnostico {
         }
     }
 
+    /**
+     * Realiza una query que busca del numero de elementos que hay en una tabla
+     *
+     * @param tabla Tabla de la que se quiere obtener el numero de elementos
+     * @return Devuelve el numero de enfermedades en la BD, en caso de haber un error devuelve -1
+     */
+    private int getFilasDeTabla(String tabla) {
+        try {
+            Statement statement = mConnection.createStatement(); //No es necesario usar
+            //un PreparedStatement debido a que el parameto es pasado por nosotros
+            ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + tabla);
+            resultSet.next();
+            int numero = resultSet.getInt(1);
+            statement.close();
+            resultSet.close();
+            return numero;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener numero de elementos");
+            return -1;
+        }
+    }
+
+    /**
+     * Realiza la busqueda en la BD de la enfermedad con mas sintomas
+     *
+     * @return String que contiene el nombre de la enfermedad con mas sintomas y cuantos son
+     */
+    private String getEnfermedadMaxSintomas() {
+        try {
+            Statement statement = mConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT " + TABLE_DISEASE + "." + DISEASE_NAME
+                    + ", COUNT(*) AS conteo FROM " + TABLE_DISEASE_SYMPTON + " JOIN " + TABLE_DISEASE + " ON "
+                    + TABLE_DISEASE_SYMPTON + "." + DISEASE_ID + "=" + TABLE_DISEASE + "." + DISEASE_ID
+                    + " GROUP BY " + DISEASE_NAME + " ORDER BY conteo DESC ");
+
+            resultSet.next();
+            String sol = "La enfermedad con mas sintomas es: " + resultSet.getString(1) + " con "
+                    + resultSet.getInt(2) + " sintomas";
+            resultSet.close();
+            statement.close();
+            return sol;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener el maximo");
+            return null;
+        }
+    }
+
+    /**
+     * Realiza la busqueda en la BD de la enfermedad con menos sintomas
+     *
+     * @return String que contiene el nombre de la enfermedad con menos sintomas y cuantos son
+     */
+    private String getEnfermedadMinSintomas() {
+        try {
+            Statement statement = mConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT " + TABLE_DISEASE + "." + DISEASE_NAME
+                    + ", COUNT(*) AS conteo FROM " + TABLE_DISEASE_SYMPTON + " JOIN " + TABLE_DISEASE + " ON "
+                    + TABLE_DISEASE_SYMPTON + "." + DISEASE_ID + "=" + TABLE_DISEASE + "." + DISEASE_ID
+                    + " GROUP BY " + DISEASE_NAME + " ORDER BY conteo ASC ");
+
+            resultSet.next();
+            String sol = "La enfermedad con menos sintomas es: " + resultSet.getString(1) + " con "
+                    + resultSet.getInt(2) + " sintomas";
+            resultSet.close();
+            statement.close();
+            return sol;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener el maximo");
+            return null;
+        }
+    }
+
+    /**
+     * Realiza el calculo del numero medio de sintomas por enfermedad en las BD
+     * @return Numero medio de sintomas por enfermedad, devuelve -1 en caso de error
+     */
+    private double numeroMedioDeSintomas() {
+        try {
+            Statement statement = mConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT AVG(conteo) FROM (SELECT COUNT(*) as conteo FROM "
+                    + TABLE_DISEASE_SYMPTON + " GROUP BY "+ DISEASE_ID + ")tconteo");
+            resultSet.next();
+            double sol = resultSet.getDouble(1);
+            resultSet.close();
+            statement.close();
+            return sol;
+        } catch (SQLException e) {
+            System.err.println("Error al obtener media");
+            return -1;
+        }
+    }
+
+    private String [] getNumeroSintomasDeSemantycType (){
+        try {
+            Statement statement = mConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("");
+            return null;
+            //TODO aaaa
+        } catch (SQLException e) {
+            System.err.println("Error al obtener el numero de sintomas de casa semantyc type");
+            return null;
+        }
+    }
 
     public static void main(String args[]) {
         new Diagnostico().showMenu();
