@@ -546,10 +546,9 @@ public class Diagnostico {
                 preparedStatementDisease.setString(1, enfermedad.getNombre());
                 preparedStatementDisease.executeUpdate();
                 ResultSet resultSet = preparedStatementDisease.getGeneratedKeys();
-                preparedStatementDisease.close();
                 resultSet.first();
                 int primaryKey = resultSet.getInt(1);
-                resultSet.close();
+
 
                 for (Sintoma sintoma : enfermedad.getSintomas()) {
                     insertarSintomaYTipoSemantico(sintoma);
@@ -572,6 +571,8 @@ public class Diagnostico {
                     preparedStatementDiseaseHasCode.executeUpdate();
                     preparedStatementDiseaseHasCode.close();
                 }
+                resultSet.close();
+                preparedStatementDisease.close();
 
             }
             mConnection.commit();
@@ -632,10 +633,9 @@ public class Diagnostico {
                     + TABLE_SEMANTIC_TYPE + " WHERE " + SEMANTYC_TYPE_CUI + "=?");
             preparedStatement.setString(1, sintoma.getTipoSemantico());
             ResultSet clave = preparedStatement.executeQuery();
-            preparedStatement.close();
             clave.first();
             foreignKey = clave.getInt(1);
-            clave.close();
+
         }
 
         try {
