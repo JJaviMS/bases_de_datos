@@ -775,7 +775,7 @@ public class Diagnostico {
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + TABLE_DISEASE_HAS_CODE + "." + CODE_ID
                     + "," + TABLE_SOURCE + "." + SOURCE_NAME + " FROM " + TABLE_DISEASE_HAS_CODE
                     + " JOIN " + TABLE_SOURCE + " ON " + TABLE_SOURCE + "." + SOURCE_ID + "=" + TABLE_DISEASE_HAS_CODE + "."
-                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?" + " ORDER BY " + TABLE_SYMPTON + "." + SYMPTON_CUI + " ASC");
+                    + SOURCE_ID + " WHERE " + DISEASE_ID + "=?");
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
             List<Codigo> codigos = new LinkedList<>();
