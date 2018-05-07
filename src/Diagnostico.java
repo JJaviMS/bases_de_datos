@@ -11,11 +11,11 @@ import java.util.List;
 public class Diagnostico {
 
     private final String DATAFILE = "data/disease_data.data";
-    private Connection mConnection;     //Variable global que contiene la conexiÛn a la BD
+    private Connection mConnection;     //Variable global que contiene la conexi√≥n a la BD
 
-    private final String SERVER = "localhost:3306";     //DirecciÛn del servidor
-    private final String USER = "bddx";                 //Usuario de la conexiÛn
-    private final String PASS = "bddx_pwd";             //ContraseÒa de la conexiÛn
+    private final String SERVER = "localhost:3306";     //Direcci√≥n del servidor
+    private final String USER = "bddx";                 //Usuario de la conexi√≥n
+    private final String PASS = "bddx_pwd";             //Contrase√±a de la conexi√≥n
     private final String NOMBRE_BASE_DE_DATOS = "diagnostico";  //Nombre de la base de datos
     private final String CABECERA_CONEXION = "jdbc:mysql://";   //Cabecera de la conexion
     private final String DRIVER = "com.mysql.jdbc.Driver";
@@ -52,14 +52,14 @@ public class Diagnostico {
 
         int option = -1;
         do {
-            System.out.println("Bienvenido a sistema de diagnÛstico\n");
-            System.out.println("Selecciona una opciÛn:\n");
-            System.out.println("\t1. CreaciÛn de base de datos y carga de datos.");
-            System.out.println("\t2. Realizar diagnÛstico.");
-            System.out.println("\t3. Listar sÌntomas de una enfermedad.");
-            System.out.println("\t4. Listar enfermedades y sus cÛdigos asociados.");
-            System.out.println("\t5. Listar sÌntomas existentes en la BD y su tipo sem·ntico.");
-            System.out.println("\t6. Mostrar estadÌsticas de la base de datos.");
+            System.out.println("Bienvenido a sistema de diagn√≥stico\n");
+            System.out.println("Selecciona una opci√≥n:\n");
+            System.out.println("\t1. Creaci√≥n de base de datos y carga de datos.");
+            System.out.println("\t2. Realizar diagn√≥stico.");
+            System.out.println("\t3. Listar s√≠ntomas de una enfermedad.");
+            System.out.println("\t4. Listar enfermedades y sus c√≥digos asociados.");
+            System.out.println("\t5. Listar s√≠ntomas existentes en la BD y su tipo sem√°ntico.");
+            System.out.println("\t6. Mostrar estad√≠sticas de la base de datos.");
             System.out.println("\t7. Salir.");
             try {
                 option = readInt();
@@ -87,21 +87,21 @@ public class Diagnostico {
                         break;
                 }
             } catch (Exception e) {
-                System.err.println("OpciÛn introducida no v·lida!");
+                System.err.println("Opci√≥n introducida no v√°lida!");
             }
         } while (option != 7);
         exit();
     }
 
     private void exit() {
-        System.out.println("Saliendo.. °hasta otra!");
+        System.out.println("Saliendo.. ¬°hasta otra!");
         if (mConnection != null) {
             try {
-                mConnection.close();    //Cerrar la conexiÛn
+                mConnection.close();    //Cerrar la conexi√≥n
                 mConnection = null;     //Liberar el recurso
                 System.out.println("Conexion cerrada");
             } catch (SQLException e) {
-                System.err.println("Error cerrando la conexiÛn");
+                System.err.println("Error cerrando la conexi√≥n");
             }
         }
         System.exit(0);
@@ -114,11 +114,11 @@ public class Diagnostico {
             System.err.println("No se ha cargado el Driver por favor cargalo");
             return;
         }
-        String url = CABECERA_CONEXION + TEST_URL + "/";   //Crear la URL de la conexiÛn
+        String url = CABECERA_CONEXION + TEST_URL + "/";   //Crear la URL de la conexi√≥n
         try {
             mConnection = DriverManager.getConnection(url, USER, PASS);     //Iniciar la conexion
         } catch (SQLException e) {
-            System.err.println("Error al iniciar la conexiÛn");
+            System.err.println("Error al iniciar la conexi√≥n");
         }
         try {
             mConnection.setCatalog(NOMBRE_BASE_DE_DATOS);                   //Elegir la base de datos
@@ -154,7 +154,7 @@ public class Diagnostico {
             System.out.println("\t" + sintoma.getCodigoSintoma() + "  " + sintoma.getSintoma());
         }
 
-        System.out.println("Por favor introduzca el cÛdigo de los sintomas");
+        System.out.println("Por favor introduzca el c√≥digo de los sintomas");
         System.out.println("Cuando haya finalizado pulse intro");
         List<String> busqueda = new LinkedList<>();
         String valor;
@@ -260,48 +260,96 @@ public class Diagnostico {
     }
 
     private void mostrarEstadisticasBD() {
-        if (checkIfIsConnected()) {
-            conectar();
-        }
-        if (mConnection==null) return;
-        int numeroEnfermedades = getFilasDeTabla(TABLE_DISEASE);
-        if (numeroEnfermedades == -1) System.err.println("Error obteniendo numero de enfermedades");
-        else {
-            System.out.println("Numero de enfermedades: " + numeroEnfermedades);
-        }
-        int numeroSintomas = getFilasDeTabla(TABLE_SYMPTON);
-        System.out.print("\n");
-        if (numeroSintomas == -1) System.err.println("Error al obtener el numero de sintomas");
-        else {
-            System.out.println("Numero de sintomas: " + numeroSintomas);
-        }
-        System.out.print("\n");
-        String min = getEnfermedadMinSintomas();
-        String max = getEnfermedadMaxSintomas();
-        System.out.println(min + "\n" + max);
-        double medio = numeroMedioDeSintomas();
-        if (medio==-1)System.err.println("Error al obtener numero medio de sintomas por enfermedad");
-        else{
-            System.out.println("Numero medio de sintomas por enfermedad: " + medio);
-        }
-        System.out.print("\n");
-        List<String> sintomasDeSemantycType = getNumeroSintomasDeSemantycType();
-        System.out.println("Imprimiendo numero de sintomas de cada Semantyc type");
-        if (sintomasDeSemantycType==null) System.err.println("Error obteniendo el numero de sintomas de cada semantyc type");
-        else{
-            for(String string:sintomasDeSemantycType){
-                System.out.println(string);
-            }
-        }
+        try {
+    		 if (checkIfIsConnected()) {
+    	            conectar();
+    	     }
+             Statement statement = mConnection.createStatement();    /*En este caso por dependencia de metodos por encima
+              no es necesario comprobar la conexion*/
+             System.out.println("EL NUMERO TOTAL DE ENFERMEDADES EN BASE DE DATOS: ");
+             ResultSet numeroEnfermedades = 
+             //N√∫mero de enfermedades: Un conteo del n√∫mero total deenfermedades que hay en la base de datos.
+             statement.executeQuery("SELECT COUNT(*) FROM " + TABLE_DISEASE);
+             numeroEnfermedades.next();
+             System.out.println(numeroEnfermedades.getInt(1));
+             System.out.println("EL NUMERO TOTAL DE ENFERMEDADES IMPRIMIDOS CORRECTAMENTE");
+             
+             //N√∫mero de s√≠ntomas: Un conteo del n√∫mero total de s√≠ntomas que hay en la base de datos.
+             System.out.println("EL NUMERO TOTAL DE SINTOMAS EN BASE DE DATOS: ");
+             ResultSet numeroSintomas=
+             statement.executeQuery("SELECT COUNT(*) FROM " + TABLE_SYMPTON);
+             numeroSintomas.next();
+             System.out.println(numeroSintomas.getInt(1));
+             System.out.println("EL NUMERO TOTAL DE SINTOMAS IMPRIMIDOS CORRECTAMENTE");
+             
+             /*Enfermedad con m√°s s√≠ntomas, con menos s√≠ntomas y n√∫mero medio de
+             s√≠ntomas [0.5 puntos]: Debe indicar cuales son las enfermedades con m√°s y
+             menos s√≠ntomas y cu√°l es el n√∫mero medio de s√≠ntomas asociados a las
+             enfermedades.*/
+             System.out.println("LA ENFERMEDAD CON M√ÅS S√çNTOMAS: ");
+             ResultSet enferSintomasMax=
+             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) TOP, disease.name "+
+             		 " FROM diagnostico.disease_sympton, diagnostico.disease "+
+            		 " where disease_sympton.disease_id=disease.disease_id "+
+            		 " GROUP BY disease_id ORDER BY TOP desc "+
+            		 " limit 1 ");
+             enferSintomasMax.next();
+             System.out.println(enferSintomasMax.getString(3));
+             System.out.println("LA ENFERMEDAD CON M√ÅS SINTOMAS HA IMPRIMIDO CORRECTAMENTE ");
+             
+             System.out.println("LA ENFERMEDAD CON MENOS S√çNTOMAS: ");
+             ResultSet enferSintomasMin=
+             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) TOP, disease.name "+
+            		 "FROM diagnostico.disease_sympton, diagnostico.disease "+
+            		 "where disease_sympton.disease_id=disease.disease_id "+
+            		 "GROUP BY disease_id ORDER BY TOP asc "+
+            		 "limit 1 ");
+             enferSintomasMin.next();
+             System.out.println( enferSintomasMin.getString(3));
+             System.out.println("LA ENFERMEDAD CON MENOS SINTOMAS HA IMPRIMIDO CORRECTAMENTE ");
+             
+             System.out.println("LA MEDIA DE ENFERMEDAD ES: ");
+             ResultSet media= statement.executeQuery("SELECT (select count(cui) "
+             		+ "FROM diagnostico.disease_sympton)/ count(*) as Media FROM diagnostico.disease ");
+             media.next();
+             System.out.println( media.getDouble(1));
+             System.out.println("LA MEDIA DE ENFERMEDAD COMPLETADO");
+             
+//             Tipos de semantic types en los s√≠ntomas y distribuci√≥n de cada semantic type
+//             (cuantos s√≠ntomas hay de cada semantic type) [0.5 puntos]: Se debe indicar
+//             cuales son los semantic types que hay en la base de datos, y cuantos s√≠ntomas
+//             hay de cada semantic type
+             //Auxiliar----------------------------
+             ResultSet longitud= statement.executeQuery("SELECT count(*) FROM diagnostico.semantic_type ");
+             longitud.next();
+             int lon=longitud.getInt(1);
+             
+             System.out.println("LA TABLA DE SEMANTIC: ");
+             ResultSet tabla= statement.executeQuery("SELECT semantic_type_id,count(cui) as Cantidad "
+             		+ "FROM diagnostico.sympton_semantic_type "
+             		+ "group by semantic_type_id ");
+             tabla.next();
+             int cont=0;
+             while(cont<lon){
+            	 System.out.print( "semantic_type_id: "+tabla.getInt(1)+ " ,Cantidad: ");
+            	 System.out.println( tabla.getInt(2));
+            	 tabla.next();
+            	 cont++;
+             }
+             System.out.println("LA TABL DE SEMANTIC_TYPE COMPLETADO");
+             
+         } catch (SQLException e) {
+             System.err.println("Error eliminando en mostrarEstadisticasBD");
+         }
 
 
     }
 
     /**
-     * MÈtodo para leer n˙meros enteros de teclado.
+     * M√©todo para leer n√∫meros enteros de teclado.
      *
-     * @return Devuelve el n˙mero leÌdo.
-     * @throws Exception Puede lanzar excepciÛn.
+     * @return Devuelve el n√∫mero le√≠do.
+     * @throws Exception Puede lanzar excepci√≥n.
      */
     private int readInt() throws Exception {
         try {
@@ -313,10 +361,10 @@ public class Diagnostico {
     }
 
     /**
-     * MÈtodo para leer cadenas de teclado.
+     * M√©todo para leer cadenas de teclado.
      *
-     * @return Devuelve la cadena leÌda.
-     * @throws Exception Puede lanzar excepciÛn.
+     * @return Devuelve la cadena le√≠da.
+     * @throws Exception Puede lanzar excepci√≥n.
      */
     private String readString() throws Exception {
         try {
@@ -328,10 +376,10 @@ public class Diagnostico {
     }
 
     /**
-     * MÈtodo para leer el fichero que contiene los datos.
+     * M√©todo para leer el fichero que contiene los datos.
      *
      * @return Devuelve una lista de String con el contenido.
-     * @throws Exception Puede lanzar excepciÛn.
+     * @throws Exception Puede lanzar excepci√≥n.
      */
     private LinkedList<String> readData() throws Exception {
         LinkedList<String> data = new LinkedList<>();
@@ -344,14 +392,14 @@ public class Diagnostico {
     }
 
     /**
-     * Comprueba si la base de datos existe en la conexiÛn
+     * Comprueba si la base de datos existe en la conexi√≥n
      *
      * @param databaseName El nombre de la base de datos que se desea comprobar si existe
      * @return Devuelve cierto en caso de que la base de datos exista
      */
     private boolean checkIfDatabaseExists(String databaseName) {
         if (checkIfIsConnected()) {
-            conectar();     //Si no existe la conexiÛn crearla
+            conectar();     //Si no existe la conexi√≥n crearla
         }
         try {
             ResultSet resultSet = mConnection.getMetaData().getCatalogs();
@@ -368,9 +416,9 @@ public class Diagnostico {
     }
 
     /**
-     * Comprueba si la conexiÛn existe y si esta abierta
+     * Comprueba si la conexi√≥n existe y si esta abierta
      *
-     * @return Devuelve falso en caso de que la conexiÛn este correctamente establecida, cierto en cualquier otro caso
+     * @return Devuelve falso en caso de que la conexi√≥n este correctamente establecida, cierto en cualquier otro caso
      */
     private boolean checkIfIsConnected() {
         try {
@@ -387,7 +435,7 @@ public class Diagnostico {
     private void menuBorrarBaseDeDatos() {
         int option;
         System.out.println("La base de datos ya existe\n");
-        System.out.println("øQuiere eliminarla y crearla de nuevo?\n");
+        System.out.println("¬øQuiere eliminarla y crearla de nuevo?\n");
         System.out.println("\t1. Si.");
         System.out.println("\t2. No.");
         try {
@@ -400,12 +448,12 @@ public class Diagnostico {
                     break;
             }
         } catch (Exception e) {
-            System.err.println("OpciÛn introducida no v·lida!");
+            System.err.println("Opci√≥n introducida no v√°lida!");
         }
     }
 
     /**
-     * Realiza la eliminaciÛn de la base de datos
+     * Realiza la eliminaci√≥n de la base de datos
      */
     private void borrarBD() {
         try {
@@ -427,7 +475,7 @@ public class Diagnostico {
             Statement statement = mConnection.createStatement();
             statement.execute("CREATE DATABASE " + NOMBRE_BASE_DE_DATOS);
             System.out.println("Base de datos creada correctamente");
-            mConnection.setCatalog(NOMBRE_BASE_DE_DATOS); //Hacer que la conexiÛn "apunte" a la base de datos
+            mConnection.setCatalog(NOMBRE_BASE_DE_DATOS); //Hacer que la conexi√≥n "apunte" a la base de datos
             crearTablas();
             insertarEnfermedadEnLaBD(parserDeDatos(readData()));
         } catch (SQLException e) {
@@ -438,7 +486,7 @@ public class Diagnostico {
     }
 
     /**
-     * CreaciÛn de las tablas en la Base de datos
+     * Creaci√≥n de las tablas en la Base de datos
      */
     private void crearTablas() {
         try {
@@ -506,8 +554,8 @@ public class Diagnostico {
     /**
      * Metodo que realiza el parse de datos del fichero pasado a Objetos Java
      *
-     * @param strings Lista que contiene las lineas con la informaciÛn de cada enfermedad
-     * @return Lista enlazada de objetos enfermedad dentro de los cuales est· toda la informaciÛn
+     * @param strings Lista que contiene las lineas con la informaci√≥n de cada enfermedad
+     * @return Lista enlazada de objetos enfermedad dentro de los cuales est√° toda la informaci√≥n
      */
     private LinkedList<Enfermedad> parserDeDatos(LinkedList<String> strings) {
         LinkedList<Enfermedad> enfermedades = new LinkedList<>();
@@ -594,13 +642,13 @@ public class Diagnostico {
     }
 
     /**
-     * Realiza la inserciÛn en la base de datos de un sintoma incluidos sus tipos semanticos
+     * Realiza la inserci√≥n en la base de datos de un sintoma incluidos sus tipos semanticos
      *
      * @param sintoma El sintoma que se desea insertar en la base de datos
      */
     private void insertarSintomaYTipoSemantico(Sintoma sintoma) throws SQLException {
 
-        //InserciÛn del sintoma
+        //Inserci√≥n del sintoma
 
         try {
             PreparedStatement preparedStatementSympton = mConnection.prepareStatement("INSERT INTO " + TABLE_SYMPTON + "("
@@ -628,7 +676,7 @@ public class Diagnostico {
             generatedKeys.next();
             foreignKey = generatedKeys.getInt(1);//Obtener la primary key generada
             generatedKeys.close();
-        } catch (SQLException e) {//Si ya est· en la BD buscar la clave
+        } catch (SQLException e) {//Si ya est√° en la BD buscar la clave
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + SEMANTYC_TYPE_ID + " FROM "
                     + TABLE_SEMANTIC_TYPE + " WHERE " + SEMANTYC_TYPE_CUI + "=?");
             preparedStatement.setString(1, sintoma.getTipoSemantico());
@@ -655,7 +703,7 @@ public class Diagnostico {
     }
 
     /**
-     * Realiza la insercion de un codigo y en caso de que no exista el source realiza la inserciÛn de este
+     * Realiza la insercion de un codigo y en caso de que no exista el source realiza la inserci√≥n de este
      *
      * @param codigo Codigo que hay que insertar
      * @return Id del source
