@@ -288,7 +288,7 @@ public class Diagnostico {
              enfermedades.*/
              System.out.println("LA ENFERMEDAD CON MÁS SÍNTOMAS: ");
              ResultSet enferSintomasMax=
-             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) TOP, disease.name "+
+             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) as TOP, disease.name "+
              		 " FROM diagnostico.disease_sympton, diagnostico.disease "+
             		 " where disease_sympton.disease_id=disease.disease_id "+
             		 " GROUP BY disease_id ORDER BY TOP desc "+
@@ -299,7 +299,7 @@ public class Diagnostico {
              
              System.out.println("LA ENFERMEDAD CON MENOS SÍNTOMAS: ");
              ResultSet enferSintomasMin=
-             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) TOP, disease.name "+
+             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) as TOP, disease.name "+
             		 "FROM diagnostico.disease_sympton, diagnostico.disease "+
             		 "where disease_sympton.disease_id=disease.disease_id "+
             		 "GROUP BY disease_id ORDER BY TOP asc "+
