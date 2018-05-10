@@ -692,7 +692,7 @@ public class Diagnostico {
                     + "(" + SYMPTON_CUI + "," + SEMANTYC_TYPE_ID + ") VALUES (?,?)");
             preparedStatementSymptonSemanticType.setString(1, sintoma.getCodigoSintoma());
             preparedStatementSymptonSemanticType.setInt(2, foreignKey);
-
+            //Insertar relacion Sintoma con su semantic type
             preparedStatementSymptonSemanticType.executeUpdate();
             preparedStatementSymptonSemanticType.close();
         } catch (SQLException e) {
@@ -720,7 +720,7 @@ public class Diagnostico {
                     + SOURCE_NAME + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
             preparedStatementSource.setString(1, codigo.getVocabulario());
             preparedStatementSource.executeUpdate();
-
+            //Insertar el source en la BD, solo se insertara si no existe
             ResultSet keys = preparedStatementSource.getGeneratedKeys();
             keys.first();
             id = keys.getInt(1); //Obtener la clave generada
@@ -782,7 +782,7 @@ public class Diagnostico {
             for (int i = 0; i < sintomas.size(); i++) {
                 builder.append("?,");
             }//Con este bucle se ponen tantas interrogaciones (?) como sintomas se vayan a buscar
-            builder.deleteCharAt(builder.length() - 1);
+            builder.deleteCharAt(builder.length() - 1);//Eliminar la ultima coma para evitar problemas
 
 
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_NAME + " FROM " + TABLE_DISEASE
