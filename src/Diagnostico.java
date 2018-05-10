@@ -11,11 +11,11 @@ import java.util.List;
 public class Diagnostico {
 
     private final String DATAFILE = "data/disease_data.data";
-    private Connection mConnection;     //Variable global que contiene la conexión a la BD
+    private Connection mConnection;     //Variable global que contiene la conexiÃ³n a la BD
 
-    private final String SERVER = "localhost:3306";     //Dirección del servidor
-    private final String USER = "bddx";                 //Usuario de la conexión
-    private final String PASS = "bddx_pwd";             //Contraseña de la conexión
+    private final String SERVER = "localhost:3306";     //DirecciÃ³n del servidor
+    private final String USER = "bddx";                 //Usuario de la conexiÃ³n
+    private final String PASS = "bddx_pwd";             //ContraseÃ±a de la conexiÃ³n
     private final String NOMBRE_BASE_DE_DATOS = "diagnostico";  //Nombre de la base de datos
     private final String CABECERA_CONEXION = "jdbc:mysql://";   //Cabecera de la conexion
     private final String DRIVER = "com.mysql.jdbc.Driver";
@@ -52,14 +52,14 @@ public class Diagnostico {
 
         int option = -1;
         do {
-            System.out.println("Bienvenido a sistema de diagnóstico\n");
-            System.out.println("Selecciona una opción:\n");
-            System.out.println("\t1. Creación de base de datos y carga de datos.");
-            System.out.println("\t2. Realizar diagnóstico.");
-            System.out.println("\t3. Listar síntomas de una enfermedad.");
-            System.out.println("\t4. Listar enfermedades y sus códigos asociados.");
-            System.out.println("\t5. Listar síntomas existentes en la BD y su tipo semántico.");
-            System.out.println("\t6. Mostrar estadísticas de la base de datos.");
+            System.out.println("Bienvenido a sistema de diagnÃ³stico\n");
+            System.out.println("Selecciona una opciÃ³n:\n");
+            System.out.println("\t1. CreaciÃ³n de base de datos y carga de datos.");
+            System.out.println("\t2. Realizar diagnÃ³stico.");
+            System.out.println("\t3. Listar sÃ­ntomas de una enfermedad.");
+            System.out.println("\t4. Listar enfermedades y sus cÃ³digos asociados.");
+            System.out.println("\t5. Listar sÃ­ntomas existentes en la BD y su tipo semÃ¡ntico.");
+            System.out.println("\t6. Mostrar estadÃ­sticas de la base de datos.");
             System.out.println("\t7. Salir.");
             try {
                 option = readInt();
@@ -87,21 +87,21 @@ public class Diagnostico {
                         break;
                 }
             } catch (Exception e) {
-                System.err.println("Opción introducida no válida!");
+                System.err.println("OpciÃ³n introducida no vÃ¡lida!");
             }
         } while (option != 7);
         exit();
     }
 
     private void exit() {
-        System.out.println("Saliendo.. ¡hasta otra!");
+        System.out.println("Saliendo.. Â¡hasta otra!");
         if (mConnection != null) {
             try {
-                mConnection.close();    //Cerrar la conexión
+                mConnection.close();    //Cerrar la conexiÃ³n
                 mConnection = null;     //Liberar el recurso
                 System.out.println("Conexion cerrada");
             } catch (SQLException e) {
-                System.err.println("Error cerrando la conexión");
+                System.err.println("Error cerrando la conexiÃ³n");
             }
         }
         System.exit(0);
@@ -114,7 +114,7 @@ public class Diagnostico {
             System.err.println("No se ha cargado el Driver por favor cargalo");
             return;
         }
-        String url = CABECERA_CONEXION + TEST_URL + "/";   //Crear la URL de la conexión
+        String url = CABECERA_CONEXION + TEST_URL + "/";   //Crear la URL de la conexiÃ³n
         try {
             mConnection = DriverManager.getConnection(url, USER, PASS);     //Iniciar la conexion
         } catch (SQLException e) {
@@ -260,87 +260,39 @@ public class Diagnostico {
     }
 
     private void mostrarEstadisticasBD() {
-        try {
-    		 if (checkIfIsConnected()) {
-    	            conectar();
-    	     }
-             Statement statement = mConnection.createStatement();    /*En este caso por dependencia de metodos por encima
-              no es necesario comprobar la conexion*/
-             System.out.println("EL NUMERO TOTAL DE ENFERMEDADES EN BASE DE DATOS: ");
-             ResultSet numeroEnfermedades = 
-             //Número de enfermedades: Un conteo del número total deenfermedades que hay en la base de datos.
-             statement.executeQuery("SELECT COUNT(*) FROM " + TABLE_DISEASE);
-             numeroEnfermedades.next();
-             System.out.println(numeroEnfermedades.getInt(1));
-             System.out.println("EL NUMERO TOTAL DE ENFERMEDADES IMPRIMIDOS CORRECTAMENTE");
-             
-             //Número de síntomas: Un conteo del número total de síntomas que hay en la base de datos.
-             System.out.println("EL NUMERO TOTAL DE SINTOMAS EN BASE DE DATOS: ");
-             ResultSet numeroSintomas=
-             statement.executeQuery("SELECT COUNT(*) FROM " + TABLE_SYMPTON);
-             numeroSintomas.next();
-             System.out.println(numeroSintomas.getInt(1));
-             System.out.println("EL NUMERO TOTAL DE SINTOMAS IMPRIMIDOS CORRECTAMENTE");
-             
-             /*Enfermedad con más síntomas, con menos síntomas y número medio de
-             síntomas [0.5 puntos]: Debe indicar cuales son las enfermedades con más y
-             menos síntomas y cuál es el número medio de síntomas asociados a las
-             enfermedades.*/
-             System.out.println("LA ENFERMEDAD CON MÁS SÍNTOMAS: ");
-             ResultSet enferSintomasMax=
-             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) as TOP, disease.name "+
-             		 " FROM diagnostico.disease_sympton, diagnostico.disease "+
-            		 " where disease_sympton.disease_id=disease.disease_id "+
-            		 " GROUP BY disease_id ORDER BY TOP desc "+
-            		 " limit 1 ");
-             enferSintomasMax.next();
-             System.out.println(enferSintomasMax.getString(3));
-             System.out.println("LA ENFERMEDAD CON MÁS SINTOMAS HA IMPRIMIDO CORRECTAMENTE ");
-             
-             System.out.println("LA ENFERMEDAD CON MENOS SÍNTOMAS: ");
-             ResultSet enferSintomasMin=
-             statement.executeQuery("SELECT disease_sympton.disease_id, count(CUI) as TOP, disease.name "+
-            		 "FROM diagnostico.disease_sympton, diagnostico.disease "+
-            		 "where disease_sympton.disease_id=disease.disease_id "+
-            		 "GROUP BY disease_id ORDER BY TOP asc "+
-            		 "limit 1 ");
-             enferSintomasMin.next();
-             System.out.println( enferSintomasMin.getString(3));
-             System.out.println("LA ENFERMEDAD CON MENOS SINTOMAS HA IMPRIMIDO CORRECTAMENTE ");
-             
-             System.out.println("LA MEDIA DE ENFERMEDAD ES: ");
-             ResultSet media= statement.executeQuery("SELECT (select count(cui) "
-             		+ "FROM diagnostico.disease_sympton)/ count(*) as Media FROM diagnostico.disease ");
-             media.next();
-             System.out.println( media.getDouble(1));
-             System.out.println("LA MEDIA DE ENFERMEDAD COMPLETADO");
-             
-//             Tipos de semantic types en los síntomas y distribución de cada semantic type
-//             (cuantos síntomas hay de cada semantic type) [0.5 puntos]: Se debe indicar
-//             cuales son los semantic types que hay en la base de datos, y cuantos síntomas
-//             hay de cada semantic type
-             //Auxiliar----------------------------
-             ResultSet longitud= statement.executeQuery("SELECT count(*) FROM diagnostico.semantic_type ");
-             longitud.next();
-             int lon=longitud.getInt(1);
-             
-             System.out.println("LA TABLA DE SEMANTIC: ");
-             ResultSet tabla= statement.executeQuery("SELECT semantic_type_id,count(cui) as Cantidad "
-             		+ "FROM diagnostico.sympton_semantic_type "
-             		+ "group by semantic_type_id ");
-             tabla.next();
-             int cont=0;
-             while(cont<lon){
-            	 System.out.print( "semantic_type_id: "+tabla.getInt(1)+ " ,Cantidad: ");
-            	 System.out.println( tabla.getInt(2));
-            	 tabla.next();
-            	 cont++;
-             }
-             System.out.println("LA TABL DE SEMANTIC_TYPE COMPLETADO");
-             
-         } catch (SQLException e) {
-             System.err.println("Error eliminando en mostrarEstadisticasBD");
-         }
+        if (checkIfIsConnected()) {
+            conectar();
+        }
+        if (mConnection==null) return;
+        int numeroEnfermedades = getFilasDeTabla(TABLE_DISEASE);
+        if (numeroEnfermedades == -1) System.err.println("Error obteniendo numero de enfermedades");
+        else {
+            System.out.println("Numero de enfermedades: " + numeroEnfermedades);
+        }
+        int numeroSintomas = getFilasDeTabla(TABLE_SYMPTON);
+        System.out.print("\n");
+        if (numeroSintomas == -1) System.err.println("Error al obtener el numero de sintomas");
+        else {
+            System.out.println("Numero de sintomas: " + numeroSintomas);
+        }
+        System.out.print("\n");
+        String min = getEnfermedadMinSintomas();
+        String max = getEnfermedadMaxSintomas();
+        System.out.println(min + "\n" + max);
+        double medio = numeroMedioDeSintomas();
+        if (medio==-1)System.err.println("Error al obtener numero medio de sintomas por enfermedad");
+        else{
+            System.out.println("Numero medio de sintomas por enfermedad: " + medio);
+        }
+        System.out.print("\n");
+        List<String> sintomasDeSemantycType = getNumeroSintomasDeSemantycType();
+        System.out.println("Imprimiendo numero de sintomas de cada Semantyc type");
+        if (sintomasDeSemantycType==null) System.err.println("Error obteniendo el numero de sintomas de cada semantyc type");
+        else{
+            for(String string:sintomasDeSemantycType){
+                System.out.println(string);
+            }
+        }
 
 
     }
@@ -692,7 +644,7 @@ public class Diagnostico {
                     + "(" + SYMPTON_CUI + "," + SEMANTYC_TYPE_ID + ") VALUES (?,?)");
             preparedStatementSymptonSemanticType.setString(1, sintoma.getCodigoSintoma());
             preparedStatementSymptonSemanticType.setInt(2, foreignKey);
-            //Insertar relacion Sintoma con su semantic type
+
             preparedStatementSymptonSemanticType.executeUpdate();
             preparedStatementSymptonSemanticType.close();
         } catch (SQLException e) {
@@ -720,7 +672,7 @@ public class Diagnostico {
                     + SOURCE_NAME + ") VALUES (?)", Statement.RETURN_GENERATED_KEYS);
             preparedStatementSource.setString(1, codigo.getVocabulario());
             preparedStatementSource.executeUpdate();
-            //Insertar el source en la BD, solo se insertara si no existe
+
             ResultSet keys = preparedStatementSource.getGeneratedKeys();
             keys.first();
             id = keys.getInt(1); //Obtener la clave generada
@@ -782,7 +734,7 @@ public class Diagnostico {
             for (int i = 0; i < sintomas.size(); i++) {
                 builder.append("?,");
             }//Con este bucle se ponen tantas interrogaciones (?) como sintomas se vayan a buscar
-            builder.deleteCharAt(builder.length() - 1);//Eliminar la ultima coma para evitar problemas
+            builder.deleteCharAt(builder.length() - 1);
 
 
             PreparedStatement preparedStatement = mConnection.prepareStatement("SELECT " + DISEASE_NAME + " FROM " + TABLE_DISEASE
